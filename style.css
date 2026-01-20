@@ -1,29 +1,100 @@
+:root {
+    --bg-color: #f0f2f5;
+    --surface-color: #ffffff;
+    --text-color: #1f2933;
+    --muted-text-color: #52606d;
+    --border-color: #d9e2ec;
+    --shadow-color: rgba(15, 23, 42, 0.12);
+    --accent-color: #2563eb;
+    --accent-contrast: #ffffff;
+    --hover-color: #e9ecef;
+    --table-header-color: #f9fafb;
+    --row-hover-color: #f1f3f5;
+}
+
+html[data-theme="dark"] {
+    --bg-color: #0f172a;
+    --surface-color: #111827;
+    --text-color: #e2e8f0;
+    --muted-text-color: #94a3b8;
+    --border-color: #1e293b;
+    --shadow-color: rgba(15, 23, 42, 0.6);
+    --accent-color: #38bdf8;
+    --accent-contrast: #0f172a;
+    --hover-color: #1f2937;
+    --table-header-color: #0b1220;
+    --row-hover-color: #182235;
+}
+
 body {
     font-family: 'Poppins', sans-serif;
     margin: 0;
-    background-color: #f0f2f5;
-    color: #333;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 header {
-    background-color: #fff;
+    background-color: var(--surface-color);
     padding: 20px;
-    border-bottom: 1px solid #ddd;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 2px 12px var(--shadow-color);
     text-align: center;
+}
+
+.header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.header-inner h1 {
+    margin: 0;
+    font-size: 1.6rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.theme-toggle {
+    border: 1px solid var(--border-color);
+    background-color: var(--surface-color);
+    color: var(--text-color);
+    padding: 8px 14px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+
+.theme-toggle:hover {
+    background-color: var(--hover-color);
+}
+
+.theme-toggle__label {
+    font-weight: 600;
 }
 
 main {
     display: flex;
     padding: 20px;
     gap: 20px;
+    max-width: 1100px;
+    margin: 0 auto;
 }
 
 account-list, portfolio-details {
-    background-color: #fff;
+    background-color: var(--surface-color);
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 12px var(--shadow-color);
+    border: 1px solid var(--border-color);
 }
 
 account-list {
@@ -37,9 +108,10 @@ portfolio-details {
 footer {
     text-align: center;
     padding: 20px;
-    background-color: #fff;
-    border-top: 1px solid #ddd;
+    background-color: var(--surface-color);
+    border-top: 1px solid var(--border-color);
     margin-top: 20px;
+    color: var(--muted-text-color);
 }
 
 table {
@@ -51,11 +123,11 @@ table {
 th, td {
     padding: 12px;
     text-align: left;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid var(--border-color);
 }
 
 th {
-    background-color: #f9f9f9;
+    background-color: var(--table-header-color);
 }
 
 account-list ul {
@@ -67,16 +139,26 @@ account-list li a {
     display: block;
     padding: 10px;
     text-decoration: none;
-    color: #333;
+    color: var(--text-color);
     border-radius: 4px;
     transition: background-color 0.3s, box-shadow 0.3s;
 }
 
 account-list li a:hover {
-    background-color: #e9ecef;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    background-color: var(--hover-color);
+    box-shadow: 0 1px 6px var(--shadow-color);
 }
 
 tr:hover {
-    background-color: #f1f3f5;
+    background-color: var(--row-hover-color);
+}
+
+@media (max-width: 900px) {
+    main {
+        flex-direction: column;
+    }
+
+    .header-inner {
+        flex-direction: column;
+    }
 }
