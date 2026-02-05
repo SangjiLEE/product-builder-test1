@@ -27,23 +27,27 @@
     <section class="partner-inquiry" aria-labelledby="partner-inquiry-title">
         <div class="partner-inquiry__inner">
             <div class="partner-inquiry__intro">
-                <h2 id="partner-inquiry-title">Partnership Inquiry</h2>
-                <p>Share your collaboration idea and our team will get back to you within 1-2 business days.</p>
+                <h2 id="partner-inquiry-title">제휴 문의</h2>
+                <p>협업 아이디어를 남겨주시면 1~2영업일 내에 연락드리겠습니다.</p>
+                <div class="partner-inquiry__meta">
+                    <span>응답 시간: 영업일 기준</span>
+                    <span>연락 채널: 이메일</span>
+                </div>
             </div>
             <form class="partner-inquiry__form" action="https://formspree.io/f/mvzbpanl" method="POST">
-                <label for="inquiry-name">Name</label>
+                <label for="inquiry-name">담당자명</label>
                 <input id="inquiry-name" name="name" type="text" autocomplete="name" required>
 
-                <label for="inquiry-email">Email</label>
+                <label for="inquiry-email">이메일</label>
                 <input id="inquiry-email" name="email" type="email" autocomplete="email" required>
 
-                <label for="inquiry-company">Company</label>
+                <label for="inquiry-company">회사명</label>
                 <input id="inquiry-company" name="company" type="text" autocomplete="organization">
 
-                <label for="inquiry-message">Message</label>
+                <label for="inquiry-message">문의 내용</label>
                 <textarea id="inquiry-message" name="message" rows="4" required></textarea>
 
-                <button type="submit">Send inquiry</button>
+                <button type="submit">문의 보내기</button>
             </form>
         </div>
     </section>
