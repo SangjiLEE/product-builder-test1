@@ -20,14 +20,24 @@
             </button>
         </div>
     </header>
-    <main>
-        <account-list></account-list>
-        <portfolio-details></portfolio-details>
-    </main>
+    <section class="section-block" aria-label="자산 관리">
+        <div class="section-block__header">
+            <span class="section-block__badge">자산</span>
+            <h2>자산 관리</h2>
+        </div>
+        <main class="section-block__content">
+            <account-list></account-list>
+            <portfolio-details></portfolio-details>
+        </main>
+    </section>
     <section class="partner-inquiry" aria-labelledby="partner-inquiry-title">
+        <div class="section-block__header">
+            <span class="section-block__badge">문의</span>
+            <h2>제휴 문의</h2>
+        </div>
         <div class="partner-inquiry__inner">
             <div class="partner-inquiry__intro">
-                <h2 id="partner-inquiry-title">제휴 문의</h2>
+                <h3 id="partner-inquiry-title">제휴 문의</h3>
                 <p>협업 아이디어를 남겨주시면 1~2영업일 내에 연락드리겠습니다.</p>
                 <div class="partner-inquiry__meta">
                     <span>응답 시간: 영업일 기준</span>
@@ -52,8 +62,11 @@
         </div>
     </section>
     <section class="comments" aria-label="댓글">
-        <div class="comments__inner">
+        <div class="section-block__header">
+            <span class="section-block__badge">커뮤니티</span>
             <h2>댓글</h2>
+        </div>
+        <div class="comments__inner">
             <div id="disqus_thread"></div>
             <script>
                 /**

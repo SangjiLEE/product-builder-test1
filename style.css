@@ -81,7 +81,33 @@ header {
     font-weight: 600;
 }
 
-main {
+.section-block {
+    padding: 28px 20px 0;
+}
+
+.section-block__header {
+    max-width: 1100px;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.section-block__header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.section-block__badge {
+    background-color: var(--accent-color);
+    color: var(--accent-contrast);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.section-block__content {
     display: flex;
     flex-direction: column;
     padding: 20px;
@@ -116,7 +142,7 @@ footer {
 }
 
 .partner-inquiry {
-    padding: 40px 20px 12px;
+    padding: 20px 20px 12px;
     background: linear-gradient(120deg, rgba(37, 99, 235, 0.12), rgba(56, 189, 248, 0.08));
 }
 
@@ -202,7 +228,7 @@ footer {
 }
 
 .comments {
-    padding: 24px 20px 12px;
+    padding: 20px 20px 12px;
 }
 
 .comments__inner {
