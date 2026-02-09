@@ -66,36 +66,59 @@ analyzeButton.addEventListener('click', async () => {
 // Function to parse the OCR text and extract portfolio data
 function parsePortfolioText(ocrResultText) {
     const assets = [];
-    // This regex attempts to find lines with a word (asset name), followed by numbers (quantity/price)
-    // This is a basic example and might need refinement based on actual portfolio statement formats.
-    const lines = ocrResultText.split('\n');
-    const assetRegex = /([a-zA-Z\s.-]+)\s+([\d,.]+)\s+([\d,.]+)/; // Matches Name, Value1, Value2
+    const lines = ocrResultText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
 
-    lines.forEach(line => {
-        const match = line.match(assetRegex);
-        if (match) {
-            // Assuming the first captured group is the name, second is quantity, third is price.
-            // This order might need to be swapped or further processed based on actual data.
-            const name = match[1].trim();
-            const value1 = parseFloat(match[2].replace(/,/g, '')); // Remove commas for parsing
-            const value2 = parseFloat(match[3].replace(/,/g, '')); // Remove commas for parsing
+    // Common OCR cleanup: replace 'l' with '1' and 'O' with '0' in numeric contexts
+    // This is a very basic cleanup and might need more sophistication.
+    const cleanedLines = lines.map(line => {
+        return line
+            .replace(/l/g, '1') // e.g., '10l' -> '101'
+            .replace(/O/g, '0') // e.g., '10O' -> '100'
+            .replace(/,/g, ''); // Remove all commas for easier float parsing
+    });
 
-            // Simple heuristic: assume the smaller number is quantity, larger is price
-            let quantity, price;
-            if (value1 < value2) {
-                quantity = value1;
-                price = value2;
-            } else {
-                quantity = value2;
-                price = value1;
-            }
+    // Define multiple regex patterns to capture different potential formats
+    // Pattern 1: Asset Name (Text) Quantity (Number) Price (Number)
+    // e.g., "삼성전자 10 70000" or "Apple 5 170.50"
+    const pattern1 = /(?<name>[가-힣a-zA-Z\s.-]+)\s+(?<quantity>\d+\.?\d*)\s+(?<price>\d+\.?\d*)/;
 
+    // Pattern 2: Asset Name (Text) Price (Number) Quantity (Number)
+    // e.g., "삼성전자 70000 10"
+    const pattern2 = /(?<name>[가-힣a-zA-Z\s.-]+)\s+(?<price>\d+\.?\d*)\s+(?<quantity>\d+\.?\d*)/;
+
+    // Pattern 3: More complex, with keywords (e.g., "종목: 삼성전자 주식수: 10 가격: 70000")
+    // This is a simplified example; real keyword patterns can be much more complex.
+    const pattern3 = /(?:종목|자산명|Asset Name):\s*(?<name>[가-힣a-zA-Z\s.-]+)\s*(?:수량|주식수|Quantity):\s*(?<quantity>\d+\.?\d*)\s*(?:가격|단가|Price):\s*(?<price>\d+\.?\d*)/;
+
+
+    cleanedLines.forEach(line => {
+        let match;
+
+        // Try pattern 1
+        if ((match = line.match(pattern1)) && match.groups.name && match.groups.quantity && match.groups.price) {
             assets.push({
-                name: name,
-                quantity: quantity,
-                price: price
+                name: match.groups.name.trim(),
+                quantity: parseFloat(match.groups.quantity),
+                price: parseFloat(match.groups.price)
             });
         }
+        // Try pattern 2
+        else if ((match = line.match(pattern2)) && match.groups.name && match.groups.quantity && match.groups.price) {
+            assets.push({
+                name: match.groups.name.trim(),
+                quantity: parseFloat(match.groups.quantity),
+                price: parseFloat(match.groups.price)
+            });
+        }
+        // Try pattern 3
+        else if ((match = line.match(pattern3)) && match.groups.name && match.groups.quantity && match.groups.price) {
+            assets.push({
+                name: match.groups.name.trim(),
+                quantity: parseFloat(match.groups.quantity),
+                price: parseFloat(match.groups.price)
+            });
+        }
+        // Add more patterns here as needed based on common user input formats
     });
     return assets;
 }
