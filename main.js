@@ -254,6 +254,7 @@ function renderPortfolio(portfolio) {
                     <th>Quantity</th>
                     <th>Price</th>
                     <th>Total Value</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -261,15 +262,19 @@ function renderPortfolio(portfolio) {
 
     let totalPortfolioValue = 0;
 
-    portfolio.forEach(asset => {
+    portfolio.forEach((asset, index) => {
         const totalValue = asset.quantity * asset.price;
         totalPortfolioValue += totalValue;
         tableHTML += `
-            <tr>
-                <td>${asset.name}</td>
-                <td>${asset.quantity}</td>
-                <td>${asset.price.toFixed(2)}</td>
-                <td>${totalValue.toFixed(2)}</td>
+            <tr data-index="${index}">
+                <td data-field="name">${asset.name}</td>
+                <td data-field="quantity">${asset.quantity}</td>
+                <td data-field="price">${asset.price.toFixed(2)}</td>
+                <td data-field="total">${totalValue.toFixed(2)}</td>
+                <td class="portfolio-actions">
+                    <button class="button-subtle update-asset-button">Update</button>
+                    <button class="button-subtle delete-asset-button">Delete</button>
+                </td>
             </tr>
         `;
     });
@@ -278,7 +283,7 @@ function renderPortfolio(portfolio) {
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="3"><strong>Total Portfolio Value:</strong></td>
+                    <td colspan="4"><strong>Total Portfolio Value:</strong></td>
                     <td><strong>${totalPortfolioValue.toFixed(2)}</strong></td>
                 </tr>
             </tfoot>
@@ -288,11 +293,100 @@ function renderPortfolio(portfolio) {
     analysisResult.innerHTML = tableHTML;
 }
 
+// Function to delete an asset
+function deleteAsset(index) {
+    if (confirm('Are you sure you want to delete this asset?')) {
+        let portfolio = loadPortfolio();
+        portfolio.splice(index, 1);
+        savePortfolio(portfolio);
+        renderPortfolio(loadPortfolio());
+    }
+}
+
+// Function to save an updated asset
+function saveAsset(index) {
+    let portfolio = loadPortfolio();
+    const row = document.querySelector(`tr[data-index="${index}"]`);
+    const nameInput = row.querySelector('input[data-field="name"]');
+    const quantityInput = row.querySelector('input[data-field="quantity"]');
+    const priceInput = row.querySelector('input[data-field="price"]');
+
+    const name = nameInput.value.trim();
+    const quantity = parseFloat(quantityInput.value);
+    const price = parseFloat(priceInput.value);
+
+    if (name && !isNaN(quantity) && quantity > 0 && !isNaN(price) && price > 0) {
+        portfolio[index] = { name, quantity, price };
+        savePortfolio(portfolio);
+        renderPortfolio(loadPortfolio());
+    } else {
+        alert('Invalid asset data. Please ensure all fields are filled correctly.');
+    }
+}
+
+// Function to toggle edit mode for a row
+function toggleEditMode(index) {
+    const row = document.querySelector(`tr[data-index="${index}"]`);
+    const isEditing = row.classList.contains('editing');
+
+    if (isEditing) {
+        // This case is handled by the saveAsset function
+        return;
+    }
+
+    row.classList.add('editing');
+
+    const nameCell = row.querySelector('td[data-field="name"]');
+    const quantityCell = row.querySelector('td[data-field="quantity"]');
+    const priceCell = row.querySelector('td[data-field="price"]');
+
+    const name = nameCell.textContent;
+    const quantity = quantityCell.textContent;
+    const price = priceCell.textContent;
+
+    nameCell.innerHTML = `<input type="text" data-field="name" value="${name}">`;
+    quantityCell.innerHTML = `<input type="number" data-field="quantity" value="${quantity}" min="0">`;
+    priceCell.innerHTML = `<input type="number" data-field="price" value="${price}" min="0" step="0.01">`;
+
+    const updateButton = row.querySelector('.update-asset-button');
+    updateButton.textContent = 'Save';
+}
+
+
 // Initialize portfolio display on load
 document.addEventListener('DOMContentLoaded', () => {
     const initialPortfolio = loadPortfolio();
     renderPortfolio(initialPortfolio);
+
+    // Event listener for the "Clear All" button
+    document.getElementById('clear-portfolio-button').addEventListener('click', () => {
+        if (confirm('Are you sure you want to clear your entire portfolio? This action cannot be undone.')) {
+            savePortfolio([]); // Save an empty array
+            renderPortfolio([]);
+            alert('Portfolio cleared.');
+        }
+    });
+
+    // Event delegation for portfolio actions
+    analysisResult.addEventListener('click', (event) => {
+        const target = event.target;
+        const row = target.closest('tr');
+        if (!row) return;
+
+        const index = parseInt(row.dataset.index, 10);
+
+        if (target.classList.contains('delete-asset-button')) {
+            deleteAsset(index);
+        } else if (target.classList.contains('update-asset-button')) {
+            if (row.classList.contains('editing')) {
+                saveAsset(index);
+            } else {
+                toggleEditMode(index);
+            }
+        }
+    });
 });
+
 
 
 const themeToggle = document.querySelector('#theme-toggle');

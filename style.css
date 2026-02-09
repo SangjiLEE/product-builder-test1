@@ -98,6 +98,25 @@ header {
     font-size: 1.25rem;
 }
 
+.section-block__header .button-subtle {
+    margin-left: auto; /* Pushes the button to the right */
+    background-color: transparent;
+    color: var(--muted-text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.section-block__header .button-subtle:hover {
+    background-color: var(--hover-color);
+    color: var(--text-color);
+}
+
+
 .section-block__badge {
     background-color: var(--accent-color);
     color: var(--accent-contrast);
@@ -164,9 +183,13 @@ header {
 
 #image-preview img {
     max-width: 100%;
+    max-height: 200px; /* Limit height to 200px */
+    object-fit: contain; /* Ensure the whole image is visible */
     border-radius: 8px;
     border: 1px solid var(--border-color);
     margin-top: 16px;
+    background-color: var(--hover-color); /* Add a background for transparency */
+    padding: 5px; /* Add some padding */
 }
 
 #progress {
@@ -366,6 +389,28 @@ tr:hover {
     padding-bottom: 15px;
     border-top: 2px solid var(--border-color); /* Stronger border for footer */
 }
+
+/* Portfolio Row Actions */
+.portfolio-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.portfolio-actions .button-subtle {
+    padding: 4px 10px;
+    font-size: 0.8rem;
+}
+
+/* Style for rows in edit mode */
+.portfolio-table tr.editing {
+    background-color: var(--row-hover-color);
+}
+
+.portfolio-table tr.editing td {
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
 
 /* Confirmation Screen Styles */
 .raw-ocr-text {
