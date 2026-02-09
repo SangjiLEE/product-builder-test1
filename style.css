@@ -367,6 +367,76 @@ tr:hover {
     border-top: 2px solid var(--border-color); /* Stronger border for footer */
 }
 
+/* Confirmation Screen Styles */
+.raw-ocr-text {
+    background-color: var(--hover-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 15px;
+    white-space: pre-wrap; /* Preserves whitespace and wraps long lines */
+    font-family: monospace;
+    font-size: 0.9em;
+    color: var(--muted-text-color);
+    margin-bottom: 20px;
+}
+
+.confirmation-table {
+    margin-bottom: 20px;
+}
+
+.confirmation-table input[type="text"],
+.confirmation-table input[type="number"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--surface-color);
+    color: var(--text-color);
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+
+.confirmation-table input[type="text"]:focus,
+.confirmation-table input[type="number"]:focus {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+.confirmation-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.confirmation-actions button {
+    border: none;
+    border-radius: 999px;
+    padding: 10px 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#confirm-assets-button {
+    background-color: var(--accent-color);
+    color: var(--accent-contrast);
+}
+
+#confirm-assets-button:hover {
+    background-color: var(--accent-color); /* Slightly darker shade for hover */
+    box-shadow: 0 4px 10px var(--shadow-color);
+}
+
+#cancel-confirmation-button {
+    background-color: var(--hover-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+#cancel-confirmation-button:hover {
+    background-color: var(--border-color);
+    box-shadow: 0 4px 10px var(--shadow-color);
+}
+
 @media (max-width: 900px) {
     .header-inner {
         flex-direction: column;

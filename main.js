@@ -45,23 +45,121 @@ analyzeButton.addEventListener('click', async () => {
         console.log('Recognized text:', text);
 
         const newAssets = parsePortfolioText(text);
-        if (newAssets.length > 0) {
-            addAssetsToPortfolio(newAssets);
-            const updatedPortfolio = loadPortfolio();
-            // Call renderPortfolio to display the updated portfolio (will be implemented next)
-            renderPortfolio(updatedPortfolio);
-        } else {
-            analysisResult.innerHTML = `<p>No recognizable assets found in the image.</p>`;
-        }
-
+        // Instead of directly adding, display for confirmation
+        displayConfirmationScreen(text, newAssets);
 
     } catch (error) {
         console.error(error);
         analysisResult.innerHTML = `<p style="color: red;">Error during analysis: ${error.message}</p>`;
     } finally {
         progress.textContent = '';
+        // Clear the uploaded image after analysis, regardless of success/failure
+        imagePreview.innerHTML = '';
+        uploadedImage = null;
+        // Also clear the image upload input field
+        imageUpload.value = '';
     }
 });
+
+// Function to display OCR results for user confirmation and potential editing
+function displayConfirmationScreen(ocrText, parsedAssets) {
+    let confirmationHTML = `
+        <h3>Review OCR Results</h3>
+        <p>Please review the recognized text and parsed assets. You can edit the parsed assets before confirming.</p>
+
+        <h4>Raw Recognized Text:</h4>
+        <pre class="raw-ocr-text">${ocrText}</pre>
+
+        <h4>Parsed Assets:</h4>
+        <table class="portfolio-table confirmation-table">
+            <thead>
+                <tr>
+                    <th>Asset Name</th>
+                    <th>Quantity</th>
+                    <th>Price</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    if (parsedAssets.length === 0) {
+        confirmationHTML += `<tr><td colspan="3">No assets detected.</td></tr>`;
+    } else {
+        parsedAssets.forEach((asset, index) => {
+            confirmationHTML += `
+                <tr data-index="${index}">
+                    <td><input type="text" class="edit-name" value="${asset.name || ''}"></td>
+                    <td><input type="number" class="edit-quantity" value="${asset.quantity || ''}" min="0"></td>
+                    <td><input type="number" class="edit-price" value="${asset.price || ''}" min="0" step="0.01"></td>
+                </tr>
+            `;
+        });
+    }
+
+    confirmationHTML += `
+            </tbody>
+        </table>
+        <div class="confirmation-actions">
+            <button id="confirm-assets-button">Confirm and Add to Portfolio</button>
+            <button id="cancel-confirmation-button">Cancel</button>
+        </div>
+    `;
+
+    analysisResult.innerHTML = confirmationHTML;
+
+    // Attach event listeners for the new buttons
+    document.getElementById('confirm-assets-button').addEventListener('click', () => {
+        // This will be implemented in a later step
+        confirmAssets(); // Call confirmAssets without passing parsedAssets, as it will read from DOM
+    });
+
+    document.getElementById('cancel-confirmation-button').addEventListener('click', () => {
+        // This will be implemented in a later step
+        cancelConfirmation();
+    });
+}
+
+// Function to handle confirmation of assets
+function confirmAssets() {
+    const editedAssets = [];
+    const rows = document.querySelectorAll('.confirmation-table tbody tr');
+
+    rows.forEach(row => {
+        const nameInput = row.querySelector('.edit-name');
+        const quantityInput = row.querySelector('.edit-quantity');
+        const priceInput = row.querySelector('.edit-price');
+
+        const name = nameInput ? nameInput.value.trim() : '';
+        const quantity = quantityInput ? parseFloat(quantityInput.value) : 0;
+        const price = priceInput ? parseFloat(priceInput.value) : 0;
+
+        // Only add assets that have a name, quantity, and price
+        if (name && !isNaN(quantity) && quantity > 0 && !isNaN(price) && price > 0) {
+            editedAssets.push({ name, quantity, price });
+        }
+    });
+
+    if (editedAssets.length > 0) {
+        addAssetsToPortfolio(editedAssets);
+        const updatedPortfolio = loadPortfolio();
+        renderPortfolio(updatedPortfolio);
+        alert('Assets added to your portfolio!');
+    } else {
+        alert('No valid assets to add to the portfolio.');
+    }
+
+    // Clear the confirmation screen
+    analysisResult.innerHTML = '';
+}
+
+// Function to handle cancellation of assets (will be implemented next)
+function cancelConfirmation() {
+    // Clear the confirmation screen and re-render the existing portfolio
+    analysisResult.innerHTML = '';
+    const currentPortfolio = loadPortfolio();
+    renderPortfolio(currentPortfolio);
+}
+
 
 // Function to parse the OCR text and extract portfolio data
 function parsePortfolioText(ocrResultText) {
