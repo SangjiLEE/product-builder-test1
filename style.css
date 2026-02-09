@@ -328,6 +328,45 @@ tr:hover {
     background-color: var(--row-hover-color);
 }
 
+/* Portfolio Table Specific Styles */
+.portfolio-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden; /* Ensures rounded corners apply to children */
+}
+
+.portfolio-table th,
+.portfolio-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.portfolio-table th {
+    background-color: var(--table-header-color);
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.portfolio-table tbody tr:last-child td {
+    border-bottom: none; /* No border for the last row in tbody */
+}
+
+.portfolio-table tfoot tr {
+    background-color: var(--table-header-color); /* Use header color for footer */
+    font-weight: 700;
+}
+
+.portfolio-table tfoot td {
+    padding-top: 15px;
+    padding-bottom: 15px;
+    border-top: 2px solid var(--border-color); /* Stronger border for footer */
+}
+
 @media (max-width: 900px) {
     .header-inner {
         flex-direction: column;
