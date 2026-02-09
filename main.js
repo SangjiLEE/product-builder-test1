@@ -12,7 +12,7 @@ let worker; // Declare worker globally
     worker = await Tesseract.createWorker();
     await worker.loadLanguage('eng+kor');
     await worker.initialize('eng+kor');
-    progress.textContent = 'Tesseract.js worker loaded.';
+    progress.textContent = ''; // Clear progress text after worker is loaded
 })();
 
 imageUpload.addEventListener('change', (event) => {
@@ -71,7 +71,16 @@ function displayConfirmationScreen(ocrText, parsedAssets) {
         <pre class="raw-ocr-text">${ocrText}</pre>
 
         <h4>Parsed Assets:</h4>
-        <table class="portfolio-table confirmation-table">
+    `;
+
+    if (parsedAssets.length === 0) {
+        confirmationHTML += `
+            <p>No assets were automatically detected. You can still confirm to add an empty set or cancel.</p>
+        `;
+        // No table if no assets, or a table with a message
+        // For simplicity, I'll remove the table entirely if no assets were parsed.
+    } else {
+        confirmationHTML += `<table class="portfolio-table confirmation-table">
             <thead>
                 <tr>
                     <th>Asset Name</th>
@@ -79,12 +88,7 @@ function displayConfirmationScreen(ocrText, parsedAssets) {
                     <th>Price</th>
                 </tr>
             </thead>
-            <tbody>
-    `;
-
-    if (parsedAssets.length === 0) {
-        confirmationHTML += `<tr><td colspan="3">No assets detected.</td></tr>`;
-    } else {
+            <tbody>`;
         parsedAssets.forEach((asset, index) => {
             confirmationHTML += `
                 <tr data-index="${index}">
@@ -94,13 +98,12 @@ function displayConfirmationScreen(ocrText, parsedAssets) {
                 </tr>
             `;
         });
+        confirmationHTML += `</tbody></table>`;
     }
 
     confirmationHTML += `
-            </tbody>
-        </table>
         <div class="confirmation-actions">
-            <button id="confirm-assets-button">Confirm and Add to Portfolio</button>
+            <button id="confirm-assets-button" ${parsedAssets.length === 0 ? 'disabled' : ''}>Confirm and Add to Portfolio</button>
             <button id="cancel-confirmation-button">Cancel</button>
         </div>
     `;
@@ -108,13 +111,13 @@ function displayConfirmationScreen(ocrText, parsedAssets) {
     analysisResult.innerHTML = confirmationHTML;
 
     // Attach event listeners for the new buttons
-    document.getElementById('confirm-assets-button').addEventListener('click', () => {
-        // This will be implemented in a later step
-        confirmAssets(); // Call confirmAssets without passing parsedAssets, as it will read from DOM
-    });
+    if (parsedAssets.length > 0) { // Only attach if there are assets to confirm
+        document.getElementById('confirm-assets-button').addEventListener('click', () => {
+            confirmAssets();
+        });
+    }
 
     document.getElementById('cancel-confirmation-button').addEventListener('click', () => {
-        // This will be implemented in a later step
         cancelConfirmation();
     });
 }
@@ -147,9 +150,6 @@ function confirmAssets() {
     } else {
         alert('No valid assets to add to the portfolio.');
     }
-
-    // Clear the confirmation screen
-    analysisResult.innerHTML = '';
 }
 
 // Function to handle cancellation of assets (will be implemented next)
