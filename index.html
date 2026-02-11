@@ -3,40 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account Portfolio Asset Management</title>
+    <title>Animal Match Finder</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
     <header>
         <div class="header-inner">
-            <h1><i class="fa-solid fa-chart-pie"></i> Account Portfolio</h1>
+            <h1><i class="fa-solid fa-paw"></i> Animal Match Finder</h1>
             <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle dark mode">
                 <i class="fa-solid fa-moon"></i>
                 <span class="theme-toggle__label">Dark mode</span>
             </button>
         </div>
     </header>
-    <section class="section-block" aria-label="포트폴리오 분석">
+    <section class="section-block" aria-label="닮은 동물 분석">
         <div class="section-block__header">
             <span class="section-block__badge">분석</span>
-            <h2>포트폴리오 분석</h2>
-            <button id="clear-portfolio-button" class="button-subtle">Clear All</button>
+            <h2>닮은 동물 분석</h2>
         </div>
-        <main class="section-block__content">
-            <div id="portfolio-analysis">
-                <p>주식 포트폴리오 스크린샷을 업로드하여 자산을 분석하세요.</p>
-                <input type="file" id="image-upload" accept="image/*">
-                <button id="analyze-button">분석 시작</button>
-                <div id="image-preview"></div>
+        <main class="section-block__content animal-panel">
+            <div class="upload-card">
+                <p>사진을 업로드하면 닮은 동물을 찾아드립니다. 이미지는 저장되지 않습니다.</p>
+                <input type="file" id="image-upload" accept="image/*" aria-label="사진 업로드">
+                <div class="button-row">
+                    <button id="analyze-button" type="button">분석 시작</button>
+                    <button id="reset-button" class="button-subtle" type="button">다시하기</button>
+                </div>
+                <div id="image-preview" class="image-preview"></div>
+                <div id="progress" role="status" aria-live="polite"></div>
+            </div>
+            <div class="result-card-area">
                 <div id="analysis-result"></div>
-                <div id="progress"></div>
             </div>
         </main>
+        <div class="animal-candidates">
+            <h3>분석 후보 동물 20종</h3>
+            <div id="candidate-list" class="candidate-grid"></div>
+        </div>
     </section>
     <section class="partner-inquiry" aria-labelledby="partner-inquiry-title">
         <div class="section-block__header">
@@ -99,6 +106,7 @@
     <footer>
         <p>&copy; 2024 Asset Management</p>
     </footer>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="main.js" type="module"></script>
 </body>
 </html>

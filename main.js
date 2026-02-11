@@ -1,393 +1,216 @@
+import { FaceLandmarker, FilesetResolver } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
+import { animalProfiles } from './animals.js';
+
 const imageUpload = document.getElementById('image-upload');
 const analyzeButton = document.getElementById('analyze-button');
+const resetButton = document.getElementById('reset-button');
 const imagePreview = document.getElementById('image-preview');
 const analysisResult = document.getElementById('analysis-result');
 const progress = document.getElementById('progress');
+const candidateList = document.getElementById('candidate-list');
 
 let uploadedImage = null;
-let worker; // Declare worker globally
+let faceLandmarker = null;
 
-(async () => {
-    progress.textContent = 'Loading Tesseract.js worker...';
-    worker = await Tesseract.createWorker();
-    await worker.loadLanguage('eng+kor');
-    await worker.initialize('eng+kor');
-    progress.textContent = ''; // Clear progress text after worker is loaded
-})();
+const renderCandidateList = () => {
+  candidateList.innerHTML = animalProfiles.map((animal) => `
+    <div class="candidate-card">
+      ${animal.illustration}
+      <span>${animal.name}</span>
+    </div>
+  `).join('');
+};
+
+const setProgress = (message) => {
+  progress.textContent = message;
+};
+
+const loadModel = async () => {
+  setProgress('동물 분석 모델을 불러오는 중...');
+  const vision = await FilesetResolver.forVisionTasks(
+    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+  );
+  faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+    baseOptions: {
+      modelAssetPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm/face_landmarker.task'
+    },
+    runningMode: 'IMAGE',
+    numFaces: 1
+  });
+  setProgress('');
+};
+
+const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+const extractRatios = (landmarks) => {
+  const faceHeight = distance(landmarks[10], landmarks[152]);
+  const faceWidth = distance(landmarks[234], landmarks[454]);
+  const eyeDistance = distance(landmarks[33], landmarks[263]);
+  const mouthWidth = distance(landmarks[61], landmarks[291]);
+  const noseLength = distance(landmarks[168], landmarks[2]);
+  const jawWidth = distance(landmarks[172], landmarks[397]);
+
+  return {
+    faceRatio: faceHeight / faceWidth,
+    eyeDistance: eyeDistance / faceWidth,
+    noseLength: noseLength / faceHeight,
+    mouthWidth: mouthWidth / faceWidth,
+    jawWidth: jawWidth / faceWidth
+  };
+};
+
+const computeSimilarity = (profile, ratios) => {
+  const tolerance = 0.2;
+  const keys = Object.keys(profile.targets);
+  const score = keys.reduce((sum, key) => {
+    const diff = Math.abs(ratios[key] - profile.targets[key]);
+    const closeness = Math.max(0, 1 - diff / tolerance);
+    return sum + closeness;
+  }, 0) / keys.length;
+
+  return score;
+};
+
+const describeTraits = (ratios) => {
+  const faceText = ratios.faceRatio > 1.25 ? '얼굴이 길고'
+    : ratios.faceRatio < 1.0 ? '얼굴이 둥글고'
+    : '얼굴 비율이 안정적이고';
+  const eyeText = ratios.eyeDistance > 0.6 ? '눈 사이 간격이 넓어요.'
+    : ratios.eyeDistance < 0.52 ? '눈 간격이 촘촘한 편이에요.'
+    : '눈 간격이 적당해요.';
+  return `${faceText} ${eyeText}`;
+};
+
+const renderResult = (animal, similarity, ratios) => {
+  const percent = Math.round(60 + similarity * 40);
+  const description = describeTraits(ratios);
+
+  analysisResult.innerHTML = `
+    <div class="result-card" id="result-card">
+      <div class="result-illustration">
+        ${animal.illustration}
+      </div>
+      <div class="result-meta">
+        <span class="result-label">당신과 닮은 동물</span>
+        <h3>${animal.name}</h3>
+        <p class="result-score">유사도 ${percent}%</p>
+        <p class="result-description">${animal.description} ${description}</p>
+        <p class="disclaimer">본 결과는 엔터테인먼트 목적이며 정확도를 보장하지 않습니다.</p>
+      </div>
+    </div>
+    <div class="share-actions">
+      <button id="share-button" type="button">공유하기</button>
+      <button id="copy-button" class="button-subtle" type="button">결과 복사</button>
+      <button id="download-button" class="button-subtle" type="button">이미지 저장</button>
+    </div>
+  `;
+
+  const shareButton = document.getElementById('share-button');
+  const copyButton = document.getElementById('copy-button');
+  const downloadButton = document.getElementById('download-button');
+
+  const shareText = `나의 닮은 동물은 ${animal.name}! 유사도 ${percent}%`;
+
+  shareButton.addEventListener('click', async () => {
+    if (navigator.share) {
+      await navigator.share({
+        title: '닮은 동물 분석',
+        text: shareText
+      });
+    } else {
+      await navigator.clipboard.writeText(shareText);
+      alert('공유를 지원하지 않는 브라우저입니다. 텍스트를 복사했습니다.');
+    }
+  });
+
+  copyButton.addEventListener('click', async () => {
+    await navigator.clipboard.writeText(shareText);
+    alert('결과 텍스트를 복사했습니다.');
+  });
+
+  downloadButton.addEventListener('click', async () => {
+    if (!window.html2canvas) {
+      alert('이미지 저장을 위해 html2canvas 라이브러리가 필요합니다.');
+      return;
+    }
+    const card = document.getElementById('result-card');
+    const canvas = await window.html2canvas(card, { backgroundColor: null });
+    const link = document.createElement('a');
+    link.href = canvas.toDataURL('image/png');
+    link.download = `animal-result-${animal.key}.png`;
+    link.click();
+  });
+};
+
+const resetUI = () => {
+  imagePreview.innerHTML = '';
+  analysisResult.innerHTML = '';
+  imageUpload.value = '';
+  uploadedImage = null;
+};
 
 imageUpload.addEventListener('change', (event) => {
-    if (event.target.files && event.target.files[0]) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            uploadedImage = e.target.result;
-            imagePreview.innerHTML = `<img src="${uploadedImage}" alt="Uploaded Portfolio">`;
-        };
-        reader.readAsDataURL(event.target.files[0]);
-    }
+  if (event.target.files && event.target.files[0]) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      uploadedImage = e.target.result;
+      imagePreview.innerHTML = `<img src="${uploadedImage}" alt="업로드한 사진">`;
+    };
+    reader.readAsDataURL(event.target.files[0]);
+  }
 });
 
 analyzeButton.addEventListener('click', async () => {
-    if (!uploadedImage) {
-        alert('Please upload an image first.');
-        return;
+  if (!uploadedImage) {
+    alert('사진을 먼저 업로드해주세요.');
+    return;
+  }
+  if (!faceLandmarker) {
+    alert('모델을 불러오는 중입니다. 잠시만 기다려주세요.');
+    return;
+  }
+
+  setProgress('얼굴을 분석하는 중...');
+  analysisResult.innerHTML = '';
+
+  try {
+    const imageElement = new Image();
+    imageElement.src = uploadedImage;
+    await imageElement.decode();
+
+    const results = faceLandmarker.detect(imageElement);
+    if (!results.faceLandmarks || results.faceLandmarks.length === 0) {
+      analysisResult.innerHTML = '<p class="error-text">얼굴을 인식하지 못했습니다. 다른 사진을 올려주세요.</p>';
+      return;
     }
-    if (!worker) {
-        alert('Tesseract.js worker is still loading. Please wait a moment.');
-        return;
-    }
 
-    progress.textContent = 'Analyzing image...';
-    analysisResult.innerHTML = '';
+    const ratios = extractRatios(results.faceLandmarks[0]);
+    const scored = animalProfiles.map((animal) => ({
+      animal,
+      score: computeSimilarity(animal, ratios)
+    }));
 
-    try {
-        const { data: { text } } = await worker.recognize(uploadedImage);
-
-        console.log('Recognized text:', text);
-
-        const newAssets = parsePortfolioText(text);
-        // Instead of directly adding, display for confirmation
-        displayConfirmationScreen(text, newAssets);
-
-    } catch (error) {
-        console.error(error);
-        analysisResult.innerHTML = `<p style="color: red;">Error during analysis: ${error.message}</p>`;
-    } finally {
-        progress.textContent = '';
-        // Clear the uploaded image after analysis, regardless of success/failure
-        imagePreview.innerHTML = '';
-        uploadedImage = null;
-        // Also clear the image upload input field
-        imageUpload.value = '';
-    }
+    scored.sort((a, b) => b.score - a.score);
+    renderResult(scored[0].animal, scored[0].score, ratios);
+  } catch (error) {
+    console.error(error);
+    analysisResult.innerHTML = `<p class="error-text">분석 중 오류가 발생했습니다: ${error.message}</p>`;
+  } finally {
+    setProgress('');
+  }
 });
 
-// Function to display OCR results for user confirmation and potential editing
-function displayConfirmationScreen(ocrText, parsedAssets) {
-    let confirmationHTML = `
-        <h3>Review OCR Results</h3>
-        <p>Please review the recognized text and parsed assets. You can edit the parsed assets before confirming.</p>
+resetButton.addEventListener('click', () => {
+  resetUI();
+});
 
-        <h4>Raw Recognized Text:</h4>
-        <pre class="raw-ocr-text">${ocrText}</pre>
-
-        <h4>Parsed Assets:</h4>
-    `;
-
-    if (parsedAssets.length === 0) {
-        confirmationHTML += `
-            <p>No assets were automatically detected. You can still confirm to add an empty set or cancel.</p>
-        `;
-        // No table if no assets, or a table with a message
-        // For simplicity, I'll remove the table entirely if no assets were parsed.
-    } else {
-        confirmationHTML += `<table class="portfolio-table confirmation-table">
-            <thead>
-                <tr>
-                    <th>Asset Name</th>
-                    <th>Quantity</th>
-                    <th>Price</th>
-                </tr>
-            </thead>
-            <tbody>`;
-        parsedAssets.forEach((asset, index) => {
-            confirmationHTML += `
-                <tr data-index="${index}">
-                    <td><input type="text" class="edit-name" value="${asset.name || ''}"></td>
-                    <td><input type="number" class="edit-quantity" value="${asset.quantity || ''}" min="0"></td>
-                    <td><input type="number" class="edit-price" value="${asset.price || ''}" min="0" step="0.01"></td>
-                </tr>
-            `;
-        });
-        confirmationHTML += `</tbody></table>`;
-    }
-
-    confirmationHTML += `
-        <div class="confirmation-actions">
-            <button id="confirm-assets-button" ${parsedAssets.length === 0 ? 'disabled' : ''}>Confirm and Add to Portfolio</button>
-            <button id="cancel-confirmation-button">Cancel</button>
-        </div>
-    `;
-
-    analysisResult.innerHTML = confirmationHTML;
-
-    // Attach event listeners for the new buttons
-    if (parsedAssets.length > 0) { // Only attach if there are assets to confirm
-        document.getElementById('confirm-assets-button').addEventListener('click', () => {
-            confirmAssets();
-        });
-    }
-
-    document.getElementById('cancel-confirmation-button').addEventListener('click', () => {
-        cancelConfirmation();
-    });
-}
-
-// Function to handle confirmation of assets
-function confirmAssets() {
-    const editedAssets = [];
-    const rows = document.querySelectorAll('.confirmation-table tbody tr');
-
-    rows.forEach(row => {
-        const nameInput = row.querySelector('.edit-name');
-        const quantityInput = row.querySelector('.edit-quantity');
-        const priceInput = row.querySelector('.edit-price');
-
-        const name = nameInput ? nameInput.value.trim() : '';
-        const quantity = quantityInput ? parseFloat(quantityInput.value) : 0;
-        const price = priceInput ? parseFloat(priceInput.value) : 0;
-
-        // Only add assets that have a name, quantity, and price
-        if (name && !isNaN(quantity) && quantity > 0 && !isNaN(price) && price > 0) {
-            editedAssets.push({ name, quantity, price });
-        }
-    });
-
-    if (editedAssets.length > 0) {
-        addAssetsToPortfolio(editedAssets);
-        const updatedPortfolio = loadPortfolio();
-        renderPortfolio(updatedPortfolio);
-        alert('Assets added to your portfolio!');
-    } else {
-        alert('No valid assets to add to the portfolio.');
-    }
-}
-
-// Function to handle cancellation of assets (will be implemented next)
-function cancelConfirmation() {
-    // Clear the confirmation screen and re-render the existing portfolio
-    analysisResult.innerHTML = '';
-    const currentPortfolio = loadPortfolio();
-    renderPortfolio(currentPortfolio);
-}
-
-
-// Function to parse the OCR text and extract portfolio data
-function parsePortfolioText(ocrResultText) {
-    const assets = [];
-    const lines = ocrResultText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-
-    // Common OCR cleanup: replace 'l' with '1' and 'O' with '0' in numeric contexts
-    // This is a very basic cleanup and might need more sophistication.
-    const cleanedLines = lines.map(line => {
-        return line
-            .replace(/l/g, '1') // e.g., '10l' -> '101'
-            .replace(/O/g, '0') // e.g., '10O' -> '100'
-            .replace(/,/g, ''); // Remove all commas for easier float parsing
-    });
-
-    // Define multiple regex patterns to capture different potential formats
-    // Pattern 1: Asset Name (Text) Quantity (Number) Price (Number)
-    // e.g., "삼성전자 10 70000" or "Apple 5 170.50"
-    const pattern1 = /(?<name>[가-힣a-zA-Z\s.-]+)\s+(?<quantity>\d+\.?\d*)\s+(?<price>\d+\.?\d*)/;
-
-    // Pattern 2: Asset Name (Text) Price (Number) Quantity (Number)
-    // e.g., "삼성전자 70000 10"
-    const pattern2 = /(?<name>[가-힣a-zA-Z\s.-]+)\s+(?<price>\d+\.?\d*)\s+(?<quantity>\d+\.?\d*)/;
-
-    // Pattern 3: More complex, with keywords (e.g., "종목: 삼성전자 주식수: 10 가격: 70000")
-    // This is a simplified example; real keyword patterns can be much more complex.
-    const pattern3 = /(?:종목|자산명|Asset Name):\s*(?<name>[가-힣a-zA-Z\s.-]+)\s*(?:수량|주식수|Quantity):\s*(?<quantity>\d+\.?\d*)\s*(?:가격|단가|Price):\s*(?<price>\d+\.?\d*)/;
-
-
-    cleanedLines.forEach(line => {
-        let match;
-
-        // Try pattern 1
-        if ((match = line.match(pattern1)) && match.groups.name && match.groups.quantity && match.groups.price) {
-            assets.push({
-                name: match.groups.name.trim(),
-                quantity: parseFloat(match.groups.quantity),
-                price: parseFloat(match.groups.price)
-            });
-        }
-        // Try pattern 2
-        else if ((match = line.match(pattern2)) && match.groups.name && match.groups.quantity && match.groups.price) {
-            assets.push({
-                name: match.groups.name.trim(),
-                quantity: parseFloat(match.groups.quantity),
-                price: parseFloat(match.groups.price)
-            });
-        }
-        // Try pattern 3
-        else if ((match = line.match(pattern3)) && match.groups.name && match.groups.quantity && match.groups.price) {
-            assets.push({
-                name: match.groups.name.trim(),
-                quantity: parseFloat(match.groups.quantity),
-                price: parseFloat(match.groups.price)
-            });
-        }
-        // Add more patterns here as needed based on common user input formats
-    });
-    return assets;
-}
-
-// Local Storage Helper Functions
-function loadPortfolio() {
-    const portfolioJSON = localStorage.getItem('portfolio');
-    return portfolioJSON ? JSON.parse(portfolioJSON) : [];
-}
-
-function savePortfolio(portfolio) {
-    localStorage.setItem('portfolio', JSON.stringify(portfolio));
-}
-
-function addAssetsToPortfolio(newAssets) {
-    const currentPortfolio = loadPortfolio();
-    const updatedPortfolio = [...currentPortfolio, ...newAssets];
-    savePortfolio(updatedPortfolio);
-    return updatedPortfolio;
-}
-
-// Function to render the portfolio in the UI
-function renderPortfolio(portfolio) {
-    if (portfolio.length === 0) {
-        analysisResult.innerHTML = '<p>Your portfolio is empty. Upload an image to add assets.</p>';
-        return;
-    }
-
-    let tableHTML = `
-        <h3>Your Portfolio</h3>
-        <table class="portfolio-table">
-            <thead>
-                <tr>
-                    <th>Asset Name</th>
-                    <th>Quantity</th>
-                    <th>Price</th>
-                    <th>Total Value</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-    let totalPortfolioValue = 0;
-
-    portfolio.forEach((asset, index) => {
-        const totalValue = asset.quantity * asset.price;
-        totalPortfolioValue += totalValue;
-        tableHTML += `
-            <tr data-index="${index}">
-                <td data-field="name">${asset.name}</td>
-                <td data-field="quantity">${asset.quantity}</td>
-                <td data-field="price">${asset.price.toFixed(2)}</td>
-                <td data-field="total">${totalValue.toFixed(2)}</td>
-                <td class="portfolio-actions">
-                    <button class="button-subtle update-asset-button">Update</button>
-                    <button class="button-subtle delete-asset-button">Delete</button>
-                </td>
-            </tr>
-        `;
-    });
-
-    tableHTML += `
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td colspan="4"><strong>Total Portfolio Value:</strong></td>
-                    <td><strong>${totalPortfolioValue.toFixed(2)}</strong></td>
-                </tr>
-            </tfoot>
-        </table>
-    `;
-
-    analysisResult.innerHTML = tableHTML;
-}
-
-// Function to delete an asset
-function deleteAsset(index) {
-    if (confirm('Are you sure you want to delete this asset?')) {
-        let portfolio = loadPortfolio();
-        portfolio.splice(index, 1);
-        savePortfolio(portfolio);
-        renderPortfolio(loadPortfolio());
-    }
-}
-
-// Function to save an updated asset
-function saveAsset(index) {
-    let portfolio = loadPortfolio();
-    const row = document.querySelector(`tr[data-index="${index}"]`);
-    const nameInput = row.querySelector('input[data-field="name"]');
-    const quantityInput = row.querySelector('input[data-field="quantity"]');
-    const priceInput = row.querySelector('input[data-field="price"]');
-
-    const name = nameInput.value.trim();
-    const quantity = parseFloat(quantityInput.value);
-    const price = parseFloat(priceInput.value);
-
-    if (name && !isNaN(quantity) && quantity > 0 && !isNaN(price) && price > 0) {
-        portfolio[index] = { name, quantity, price };
-        savePortfolio(portfolio);
-        renderPortfolio(loadPortfolio());
-    } else {
-        alert('Invalid asset data. Please ensure all fields are filled correctly.');
-    }
-}
-
-// Function to toggle edit mode for a row
-function toggleEditMode(index) {
-    const row = document.querySelector(`tr[data-index="${index}"]`);
-    const isEditing = row.classList.contains('editing');
-
-    if (isEditing) {
-        // This case is handled by the saveAsset function
-        return;
-    }
-
-    row.classList.add('editing');
-
-    const nameCell = row.querySelector('td[data-field="name"]');
-    const quantityCell = row.querySelector('td[data-field="quantity"]');
-    const priceCell = row.querySelector('td[data-field="price"]');
-
-    const name = nameCell.textContent;
-    const quantity = quantityCell.textContent;
-    const price = priceCell.textContent;
-
-    nameCell.innerHTML = `<input type="text" data-field="name" value="${name}">`;
-    quantityCell.innerHTML = `<input type="number" data-field="quantity" value="${quantity}" min="0">`;
-    priceCell.innerHTML = `<input type="number" data-field="price" value="${price}" min="0" step="0.01">`;
-
-    const updateButton = row.querySelector('.update-asset-button');
-    updateButton.textContent = 'Save';
-}
-
-
-// Initialize portfolio display on load
 document.addEventListener('DOMContentLoaded', () => {
-    const initialPortfolio = loadPortfolio();
-    renderPortfolio(initialPortfolio);
-
-    // Event listener for the "Clear All" button
-    document.getElementById('clear-portfolio-button').addEventListener('click', () => {
-        if (confirm('Are you sure you want to clear your entire portfolio? This action cannot be undone.')) {
-            savePortfolio([]); // Save an empty array
-            renderPortfolio([]);
-            alert('Portfolio cleared.');
-        }
-    });
-
-    // Event delegation for portfolio actions
-    analysisResult.addEventListener('click', (event) => {
-        const target = event.target;
-        const row = target.closest('tr');
-        if (!row) return;
-
-        const index = parseInt(row.dataset.index, 10);
-
-        if (target.classList.contains('delete-asset-button')) {
-            deleteAsset(index);
-        } else if (target.classList.contains('update-asset-button')) {
-            if (row.classList.contains('editing')) {
-                saveAsset(index);
-            } else {
-                toggleEditMode(index);
-            }
-        }
-    });
+  renderCandidateList();
+  loadModel().catch((error) => {
+    console.error(error);
+    setProgress('모델 로딩에 실패했습니다. 새로고침 후 다시 시도해주세요.');
+  });
 });
-
-
 
 const themeToggle = document.querySelector('#theme-toggle');
 const themeIcon = themeToggle.querySelector('i');
